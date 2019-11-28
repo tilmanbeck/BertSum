@@ -1,0 +1,13 @@
+json_data/
+merged_stories_tokenized/
+raw_arguments/
+raw_stories.tar.gz
+raw_stories/
+src/__pycache__/
+src/mapping_for_corenlp.txt
+src/models/__pycache__/
+src/others/__pycache__/
+src/prepro/__pycache__/
+temp/
+venv/
+
