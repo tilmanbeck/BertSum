@@ -28,10 +28,10 @@ class Batch(object):
 
             labels = torch.tensor(self._pad(pre_labels, 0))
             segs = torch.tensor(self._pad(pre_segs, 0))
-            mask = 1 - (src == 0)
+            mask = ~(src == 0)
 
             clss = torch.tensor(self._pad(pre_clss, -1))
-            mask_cls = 1 - (clss == -1)
+            mask_cls = ~(clss == -1)
             clss[clss == -1] = 0
 
             setattr(self, 'clss', clss.to(device))
@@ -86,7 +86,7 @@ def load_dataset(args, corpus_type, shuffle):
         return dataset
 
     # Sort the glob output by file name (by increasing indexes).
-    pts = sorted(glob.glob(args.bert_data_path + '.' + corpus_type + '.[0-9]*.pt'))
+    pts = sorted(glob.glob(args.bert_data_path + corpus_type + '.[0-9]*.pt'))
     if pts:
         if (shuffle):
             random.shuffle(pts)
@@ -95,7 +95,8 @@ def load_dataset(args, corpus_type, shuffle):
             yield _lazy_dataset_loader(pt, corpus_type)
     else:
         # Only one inputters.*Dataset, simple!
-        pt = args.bert_data_path + '.' + corpus_type + '.pt'
+        print('simple')
+        pt = args.bert_data_path + corpus_type + '.pt'
         yield _lazy_dataset_loader(pt, corpus_type)
 
 
@@ -192,20 +193,25 @@ class DataIterator(object):
 
     def batch_buffer(self, data, batch_size):
         minibatch, size_so_far = [], 0
+        print('LEN DATA', len(data))
         for ex in data:
             if(len(ex['src'])==0):
                 continue
             ex = self.preprocess(ex, self.is_test)
-            if(ex is None):
+            if(not ex):
                 continue
             minibatch.append(ex)
+            print('MINIBATCH', minibatch)
             size_so_far = simple_batch_size_fn(ex, len(minibatch))
             if size_so_far == batch_size:
+                print('size_so_far==batch_size')
                 yield minibatch
                 minibatch, size_so_far = [], 0
             elif size_so_far > batch_size:
+                print('size_so_far>batch_size')
                 yield minibatch[:-1]
                 minibatch, size_so_far = minibatch[-1:], simple_batch_size_fn(ex, 1)
+        print('after loop')
         if minibatch:
             yield minibatch
 
@@ -213,15 +219,15 @@ class DataIterator(object):
         """ Create batches """
         data = self.data()
         for buffer in self.batch_buffer(data, self.batch_size * 50):
-
             p_batch = sorted(buffer, key=lambda x: len(x[3]))
             p_batch = batch(p_batch, self.batch_size)
-
+            
             p_batch = list(p_batch)
-            if (self.shuffle):
-                random.shuffle(p_batch)
-            for b in p_batch:
-                yield b
+            if p_batch:
+                if (self.shuffle):
+                    random.shuffle(p_batch)
+                for b in p_batch:
+                    yield b
 
     def __iter__(self):
         while True:

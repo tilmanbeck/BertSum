@@ -32,8 +32,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
 
-    parser.add_argument("-input_path", default='../json_data/')
-    parser.add_argument("-output_path", default='../bert_data/')
+    parser.add_argument("-input_path", default='../raw_arguments/')
+    parser.add_argument("-output_path", default='../json_data/args/')
 
     parser.add_argument("-shard_size", default=2000, type=int)
     parser.add_argument('-min_nsents', default=3, type=int)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         gold_args = json.load(fp)
 
 
-    for i in splits.keys():
+    for i in sorted(list(splits.keys()))[:1]:
         for corpus_type in ['train', 'valid', 'test']:
             final = []
             for topic in splits[i][corpus_type]:
@@ -80,9 +80,15 @@ if __name__ == '__main__':
                     else:
                         for sent in con_gold:
                             res['tgt'].append(word_tokenize(sent))
-                final.append(res)
-            pt_file = "{:s}.{:s}.{:d}.json".format('args', corpus_type, i)
-            with open(os.path.join(args.output_path, pt_file), mode='w', encoding='utf-8') as fp:
+                    assert len(res['src']) > 0
+                    assert len(res['tgt']) > 0
+                    final.append(res)
+            pt_file = "{:s}.{:s}.json".format('args', corpus_type)
+            print(len(final))
+            path = args.output_path + '/' + str(i)
+            if not os.path.exists(path):
+                os.mkdir(path)
+            with open(os.path.join(path, pt_file), mode='w', encoding='utf-8') as fp:
                 json.dump(final, fp)
 
 
